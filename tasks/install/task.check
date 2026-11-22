@@ -1,0 +1,5 @@
+MariaDB configuration file: /etc/my.cnf.d/mariadb-server.cnf
+[mysqld]
+regexp: ^^ \s* "datadir" \s* "=" \s* "/var/lib/mysql" \s* $$
+regexp: ^^ "mariadb" \s+ "Ver" \s+ \d+ "." \d+
+active
