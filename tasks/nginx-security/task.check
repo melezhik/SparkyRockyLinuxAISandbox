@@ -1,0 +1,2 @@
+nginx security status: no applicable security updates in enabled Rocky repositories
+regexp: ^^ "nginx version:" \s+ \S+
