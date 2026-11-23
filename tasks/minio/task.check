@@ -1,0 +1,13 @@
+regexp: "MinIO version:" \s+ "minio" \s+ "version" \s+ (\S+)
+generator: <<RAKU
+!raku
+my $version = capture()[0];
+say "assert: ", ($version ne '' ?? 1 !! 0), " MinIO version is reported";
+RAKU
+
+MinIO configuration: /etc/minio/minio.conf
+MinIO data directory: /var/lib/minio
+regexp: "MinIO API address:" \s+ "http://127.0.0.1:9000"
+regexp: "MinIO console address:" \s+ "http://127.0.0.1:9001"
+MinIO health: live
+active
