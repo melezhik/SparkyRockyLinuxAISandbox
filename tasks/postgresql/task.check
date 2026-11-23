@@ -1,0 +1,20 @@
+regexp: "PostgreSQL version:" \s+ (\d+ "." \d+) \s+ "(minimum:" \s+ (\d+ "." \d+) ")"
+generator: <<RAKU
+!raku
+my @installed = capture()[0].split('.').map(*.Int);
+my @minimum = capture()[1].split('.').map(*.Int);
+my $greater = False;
+for ^([@installed, @minimum].map(*.elems).min) -> $i {
+    if @installed[$i] != @minimum[$i] {
+        $greater = @installed[$i] > @minimum[$i];
+        last;
+    }
+}
+$greater ||= @installed.elems > @minimum.elems;
+say "assert: ", ($greater ?? 1 !! 0), " PostgreSQL version is greater than the configured minimum";
+RAKU
+
+active
+Security listen_addresses: localhost
+Security password_encryption: scram-sha-256
+Security host_auth: scram-sha-256 (loopback only)
