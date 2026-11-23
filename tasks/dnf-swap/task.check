@@ -1,0 +1,2 @@
+DNF swap check: curl-minimal -> curl succeeded
+DNF swap check: curl -> curl-minimal restored
