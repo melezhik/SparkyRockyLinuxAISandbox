@@ -1,0 +1,1 @@
+Create sparky test that installs WP and checks the web site works ok. Also checks that PHP version is greater then X, print initiall qustion into test.txt file

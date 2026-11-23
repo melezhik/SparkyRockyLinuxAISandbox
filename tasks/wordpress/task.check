@@ -1,0 +1,19 @@
+regexp: "PHP version:" \s+ (\d+ "." \d+ "." \d+) \s+ "(minimum:" \s+ (\d+ "." \d+) ")"
+generator: <<RAKU
+!raku
+my @installed = capture()[0].split('.').map(*.Int);
+my @minimum = capture()[1].split('.').map(*.Int);
+my $count = min(@installed.elems, @minimum.elems);
+my $greater = False;
+for ^$count -> $i {
+    if @installed[$i] != @minimum[$i] {
+        $greater = @installed[$i] > @minimum[$i];
+        last;
+    }
+}
+$greater ||= @installed.elems > @minimum.elems;
+say "assert: ", ($greater ?? 1 !! 0), " PHP version is greater than the configured minimum";
+RAKU
+
+WordPress site check: HTTP 200
+WordPress page title: Sparky WordPress Test
