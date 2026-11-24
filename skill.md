@@ -82,17 +82,46 @@ Following is complete guideline for task check language, use it to create task c
 
 ---
 
+# Task Checks
+
+Regexp based DSL to verify structured, unstructured text output.
+
+# Glossary
+
+## Input data
+
+Any text ( structured or not ) to be verified.
+
+An input text is parsed line by line and analyzed _mostly_ on per line basis.
+
+Examples:
+
+* html code
+* xml code
+* json 
+* plain text
+* emails
+* http headers
+* program languages code
+
 ## Task Check DSL
 
 * Is a domain specific language to parse and verify _arbitrary_ text
 
 * TC stands for Task Check, TC language is a Task Check Language
 
+* Terms DSL is used as a short synonym for the TC language
+
+* DSL code - a program code written on the TC language
+
+* The TC language _could be thought_ of both imperative and declarative language
+
 ## Task check files
 
 Task check DSL code should be written and saved into task.check file
 
-In this tutorial whenever DSL term is uses  it means the content of task.check file
+In this tutorial whenever DSL term is uses 
+it means the content of task.check file
 
 ### Declarative way
 
@@ -102,9 +131,17 @@ Static rules - check expressions - that define verification.
 
 * Dynamically generated rules - check expressions - are generated in _runtime_ by using DSL compatible programming languages
 
-* DSL compatible programming languages (Perl/Bash/Python/Ruby/Raku) - see examples
+* DSL compatible programming languages:
+ 
+  * Raku
+  * Perl5
+  * Bash
+  * Ruby
+  * Python
+  * Powershell
+  * Php
 
-Sparrow6 provides an API implemented for compatible languages (see `matched()`, `captures()`, `streams_array()` functions)
+Sparrow6 provides an API implemented for compatible languages ( see `matched()`, `captures()`, `streams_array()` functions )
 
 Most of examples below will be for Perl5, but the same applies for other compatible languages. 
 
@@ -145,20 +182,80 @@ Verification process is taken in a _context_.
 
 By default search context _is an original_ input text stream, which is also called default search context.
 
-However search context could be changed by applying search context modifiers ( see sequence and range expressions ).
+However search context could be changed by applying search context modifiers ( see sequence, range and within expressions ).
 
 When search context gets applied _effective_ search context narrows down depending on search context logic. 
 
-Search context is restored to default one every time when DSL parser meets `end:` marker,  see also sequence and range  expressions.
+Search context is restored to default one every time when DSL parser meets `end:` marker,  see also sequence, range and within expressions.
+
+# DSL syntax
+
+The TC language consists of the following building blocks:
+
+* Comments blank lines and here documents
+
+* Check expressions
+
+  * Plain strings aka plain text checks
+
+  * Regular expressions
+
+  * Assert expressions aka asserts
+
+* Search context modifiers
+
+  * Sequence expressions
+
+  * Range expressions
+
+  * Within expressions
+
+* Generator expressions
+
+* Code expressions
+
+# Check expressions
+
+Check expressions are patterns to match input data. 
+
+For example:
+
+Input:
+
+    HELLO
+    HELLO WORLD
+    My birth day is: 1977-04-16
+
+DSL:
+
+    HELLO
+    regexp: \d\d\d\d "-" \d\d "-" \d\d
+
+Output:
+
+    [task check] stdout match <HELLO> True
+    [task check] stdout match <\d\d\d\d "-" \d\d "-" \d\d> True
 
 
-# Check expressions pitfalls
+There are two types of check expressions:
 
-If a check expression check fails it does not terminate the whole scenario straight away, the failed checks is marked in internal state and will result in whole scenario failure when scenario is finished.
+* [plain text expressions](#plain-text-expressions) 
 
-So it's wrong to assume if we reach the end of task.check there is no check failures
+* [regular expressions](#regular-expressions).
 
-In other words even though a check is failed parser mark it state as failed and goes to the next check
+
+## Check expressions pitfalls
+
+If a check expression check fails
+it does not terminate the whole scenario straight away, the failed checks is marked in internal state and will result in whole scenario failure when scenario is finished.
+
+So it's wrong to assume if we reach the
+end of task.check there is no check
+failures
+
+In other words even though a check is failed
+parser mark it state as failed and goes to the
+next check
 
 # Plain text expressions 
 
@@ -174,12 +271,18 @@ Input:
 
     I am OK
 
+
 DSL:
 
     I am OK
     I am ok
 
+Output:
+    
+    [task check] stdout match <I am OK> True
+    [task check] stdout match <I am ok> False
 
+    
 # Regular expressions
 
 Similarly to plain text matching, one may check against regular expressions.
@@ -205,6 +308,12 @@ DSL
     regexp: "Name:" \s+ \w+ # name
     regexp: "App Version Number:" \s+ \d+ "." \d+ "." \d+ # version number
     
+output:
+
+    [task check] stdout match <\d\d\d\d '-' \d\d '-' \d\d> True
+    [task check] stdout match <'Name:' \s+ \w+> True
+    [task check] stdout match <'App Version Number:' \s+ \d+ \. \d+ \. \d+> True
+
 ## Matching multiline strings
 
 Check expressions match text in _line by line_ ( aka single line ) mode, there is no way 
@@ -476,22 +585,21 @@ DSL:
     
 Output:
 
-    [task check]
-    <(\d+) \s+ '-' \s+ for \s+ (\w+)> True
-    $VAR1 = [
-              [
-                '1',
-                'one'
-              ],
-              [
-                '2',
-                'two'
-              ],
-              [
-                '3',
-                'three'
-              ]
-            ];
+    [task check] stdout match <(\d+) \s+ '-' \s+ for \s+ (\w+)> True
+    [task check] $VAR1 = [
+    [task check]           [
+    [task check]             '1',
+    [task check]             'one'
+    [task check]           ],
+    [task check]           [
+    [task check]             '2',
+    [task check]             'two'
+    [task check]           ],
+    [task check]           [
+    [task check]             '3',
+    [task check]             'three'
+    [task check]           ]
+    [task check]         ];
     
 
 Likewise `matched()` function return array of matched lines:
@@ -513,13 +621,12 @@ DSL:
     
 Output:
 
-    [task check]
-    <\d> True
-    $VAR1 = [
-              '1 one',
-              '2 two',
-              '3 three'
-            ];
+    [task check] stdout match <\d> True
+    [task check] $VAR1 = [
+    [task check]           '1 one',
+    [task check]           '2 two',
+    [task check]           '3 three'
+    [task check]         ];
     
 The difference between `matched` and `captures()` is that `matched()` returns array of matched lines, while
 `captures()` returns array of _captured_ variables for _every_ matched line ( that means array of arrays ),
@@ -536,30 +643,31 @@ DSL:
 
     generator: <<CODE
     !perl
-    print "assert: ", captures()->[0]->[0] == 1 ? 1 : 0, " captures0,0 == 1\n";
-    print "assert: ", captures()->[0]->[1] eq 'one' ? 1 : 0, " captures0,1 == one\n";
+      print "assert: ", captures()->[0]->[0] == 1 ? 1 : 0, " captures0,0 == 1\n";
+      print "assert: ", captures()->[0]->[1] eq 'one' ? 1 : 0, " captures0,1 == one\n";
+      
+      print "assert: ", captures()->[1]->[0] == 2 ? 1 : 0, " captures1,0 == 2\n";
+      print "assert: ", captures()->[1]->[1] eq 'two' ? 1 : 0, " captures1,1 == two\n";
+      
+      print "assert: ", captures()->[2]->[0] == 3 ? 1 : 0, " captures2,0 == 3\n";
+      print "assert: ", captures()->[2]->[1] eq 'three' ? 1 : 0, " captures2,1 == three\n";
+      
+      print "assert: ", capture()->[0] == 1 ? 1 : 0, " capture0 == 1\n";
+      print "assert: ", capture()->[1] eq 'one' ? 1 : 0, " capture1 == one\n";
     
-    print "assert: ", captures()->[1]->[0] == 2 ? 1 : 0, " captures1,0 == 2\n";
-    print "assert: ", captures()->[1]->[1] eq 'two' ? 1 : 0, " captures1,1 == two\n";
-    
-    print "assert: ", captures()->[2]->[0] == 3 ? 1 : 0, " captures2,0 == 3\n";
-    print "assert: ", captures()->[2]->[1] eq 'three' ? 1 : 0, " captures2,1 == three\n";
-    
-    print "assert: ", capture()->[0] == 1 ? 1 : 0, " capture0 == 1\n";
-    print "assert: ", capture()->[1] eq 'one' ? 1 : 0, " capture1 == one\n";
     
     CODE
     
 And run check:
 
-    (a) <captures0,0 == 1> True
-    (a) <captures0,1 == one> True
-    (a) <captures1,0 == 2> True
-    (a) <captures1,1 == two> True
-    (a) <captures2,0 == 3> True
-    (a) <captures2,1 == three> True
-    (a) <capture0 == 1> True
-    (a) <capture1 == one> True
+    [task check] <captures0,0 == 1> True
+    [task check] <captures0,1 == one> True
+    [task check] <captures1,0 == 2> True
+    [task check] <captures1,1 == two> True
+    [task check] <captures2,0 == 3> True
+    [task check] <captures2,1 == three> True
+    [task check] <capture0 == 1> True
+    [task check] <capture1 == one> True
     
 
 That allows you to write tests in Perl5 Test::More `cmp_ok` way.
@@ -599,7 +707,7 @@ for matches()<> -> $l {
 This will only print `2 world` as this
 is a line where the last check expression matched
 
-If you want to accumulate matched or captured data consider using , between: or begin: together with streams(), streams_array() functions. Streams always
+If you want to accumulate matched or captured data consider using within:, between: or begin: together with streams(), streams_array() functions. Streams always
 accumulate matches data when used together with mentioned search scope modifiers
 
 So as a rule use code: or generator: 
@@ -691,15 +799,15 @@ An example of validating that input contains date for yesterday:
     regexp: date: (\d\d\d\d)-(\d\d)-(\d\d)
     
     generator: <<CODE
-    !perl
-    use DateTime;                       
-    my $c  = captures()->[0];            
-    my $dt = DateTime->new( year => $c->[0], month => $c->[1], day => $c->[2]  ); 
-    my $yesterday = DateTime->now->subtract( days =>  1 );                        
-    print 
-    "assert: ",
-    (DateTime->compare($dt, $yesterday) == 0) ? 1 : 0 , 
-    " first day found is - $dt and this is a yesterday\n";
+      !perl
+      use DateTime;                       
+      my $c  = captures()->[0];            
+      my $dt = DateTime->new( year => $c->[0], month => $c->[1], day => $c->[2]  ); 
+      my $yesterday = DateTime->now->subtract( days =>  1 );                        
+      print 
+        "assert: ",
+        (DateTime->compare($dt, $yesterday) == 0) ? 1 : 0 , 
+        " first day found is - $dt and this is a yesterday\n";
      CODE
 
 
@@ -719,6 +827,7 @@ There are three types of search context modifiers:
 
 * Sequences ( aka text blocks ) expressions
 * Ranges expressions
+* Within expressions 
 
 # Sequence expressions
 
@@ -751,12 +860,11 @@ DSL:
 
 Output:
 
-    [task check]
-    (s) <this string followed by> True
-    (s) <that string followed by> True
-    (s) <another one> True
-    (s) <with \s+  ( this || that )> True
-    (s) <at the very end> True
+    [task check] stdout match (s) <this string followed by> True
+    [task check] stdout match (s) <that string followed by> True
+    [task check] stdout match (s) <another one> True
+    [task check] stdout match (s) <with \s+  ( this || that )> True
+    [task check] stdout match (s) <at the very end> True
     
 
 Letter `s` in parenthesis in output shows that search context changed to sequence.
@@ -773,11 +881,11 @@ Input:
  
 The same check will result in:
    
-    (s) <this string followed by> True
-    (s) <that string followed by> False
-    (s) <another one> False
-    (s) <with \s+  ( this || that )> False
-    (s) <at the very end> False
+    [task check] stdout match (s) <this string followed by> True
+    [task check] stdout match (s) <that string followed by> False
+    [task check] stdout match (s) <another one> False
+    [task check] stdout match (s) <with \s+  ( this || that )> False
+    [task check] stdout match (s) <at the very end> False
 
 
 ## Sequence search expressions pitfalls
@@ -820,10 +928,9 @@ DSL:
     
 Output:
 
-    [task check]
-    (s) <aaa> True
-    (s) <bbb> True
-    (s) <ccc> False
+    [task check] stdout match (s) <aaa> True
+    [task check] stdout match (s) <bbb> True
+    [task check] stdout match (s) <ccc> False
     
 You need to match blank lines thought regexps:
 
@@ -839,7 +946,7 @@ You need to match blank lines thought regexps:
 - between: end: blocks cannot be nested. You cannot have between: end: inside another between: end: block
 
 - You cannot have between: end: blocks inside
-   end:, between: end: blocks
+  within: end:, between: end: blocks
 
 # Range expressions
 
@@ -892,9 +999,9 @@ DSL:
     
 Output:
 
-    [task check]
-    (r) <'<td>' (\S+) '</td>'> True
-    (r) <'<td>' (\S+) '</td>'> True
+
+    [task check] stdout match (r) <'<td>' (\S+) '</td>'> True
+    [task check] stdout match (r) <'<td>' (\S+) '</td>'> True
 
 ## Range expressions pitfalls
 
@@ -936,11 +1043,10 @@ DSL:
 
 Output:
 
-    [task check]
-    (r) <hello> True
-    (a) <1 hello within foo ... bar> True
-    <hello> True
-    (a) <3 hello within all document> True
+    [task check] stdout match (r) <hello> True
+    [task check] <1 hello within foo ... bar> True
+    [task check] stdout match <hello> True
+    [task check] <3 hello within all document> True
 
 * Range expressions can't verify continuous sequences.
 
@@ -974,12 +1080,12 @@ DSL:
 
 Output:
 
-      (r) <(1)> True
-      1
-      (r) <(2)> True
-      2
-      <(3)> True
-      3
+      [task check] stdout match (r) <(1)> True
+      [task check] 1
+      [task check] stdout match (r) <(2)> True
+      [task check] 2
+      [task check] stdout match (r) <(3)> True
+      [task check] 3
       
 If need to check consecutive sequences use sequence expressions.
 
@@ -1010,18 +1116,18 @@ DSL:
 
 Output:
 
-    stdout match (r) <(foo \d+)> True
-    $VAR1 = [
-              [
-                'foo2'
-              ],
-              [
-                'foo3'
-              ],
-              [
-                'foo4'
-              ]
-            ];
+    [task check] stdout match (r) <(foo \d+)> True
+    [task check] $VAR1 = [
+    [task check]           [
+    [task check]             'foo2'
+    [task check]           ],
+    [task check]           [
+    [task check]             'foo3'
+    [task check]           ],
+    [task check]           [
+    [task check]             'foo4'
+    [task check]           ]
+    [task check]         ];
     
 * Don't enclose in quotes between:
   start and stop regular expressions
@@ -1032,139 +1138,312 @@ Output:
 - between: end: blocks cannot be nested. You cannot have between: end: inside another between: end: block
 
 - You cannot have between: end: blocks inside
-   end:, begin: end: blocks
+  within: end:, begin: end: blocks
   
-# Generators
+# Within expressions
 
-* Generators is the way to _generate check expressions on the _fly_
+Within expression narrows down search context to lines matched given regular expression
 
-* Generator expressions like code expressions are just pieces of executable code
+Text input:
 
-* Everything that generator code print to _stdout_ is _treated_ as new DSL code and parsed by DSL parser
+    color: red    RE1
+    color: green  GR1
+    color: blue   BL1
+    color: brown  BR1
+    color: back   BL1
+    color: red    RE2
 
-* So new DSL terms are passed back to DSL parser and executed immediately
+DSL code:
 
-Generator expressions should start with `generator:` marker, followed by `<<HERE` doc marker that defines the start of generator block.
+    # I need one of 3 colors:
 
-The very first line of generator block should contain language identification in form of `!language` to define programming language
-to be used to execute generator block, for instance:
+    within: color: ( red || green || blue )
+      RE2
+    end:
+
+
+Output:
+
+    [task check] stdout match (w) 'color:' \s+ ( red || green || blue ) <RE2> True
+
+The code above does follows:
+
+* Check input text against regular expression "color: ( red || green || blue ) "
+
+* If check is successful new search context is set to all _matched_ lines
+
+They are:
+
+    color: red    RE1
+    color: green  GR1
+    color: blue   BL1
+    color: red    RE2
+
+
+* The next checks expression is executed against new search context and narrows downs to these lines only.
+
+Within search context acts like chained _specifiers_. 
+
+In other words this effectively means using `&&` logical operators for all check expressions inside within search context.
+
+When you may start with some generic check and then make your requirements more specific. 
+
+A failure on any more specific step means overall failure.
+
+
+Input:
+
+    2000-04-01
+
+DSL:
+
+    # date should be in format
+    within:  \d\d\d\d '-' \d\d '-' \d\d
+    
+      # AND should be 2000 year
+      regexp: ^^ '2000-'
+    
+        # AND should be the forth month
+        regexp: '-04'
+    
+        # AND should be the first day
+        01
+
+    end:
+
+Output:
+
+    [task check] stdout match (w) <^^ '2000-'> True
+    [task check] stdout match (w) <'-04'> True
+    [task check] stdout match (w) <01> True
+
+## Within as zoom expression
+
+Zoom is another interesting analogy how one could see within expressions and captures.
+
+Consider this simple example:
+
+Input:
+
+```
+ABCDCBA
+```
+
+DSL:
+
+```
+within: ^^ A (\S+) A $$
+regexp: ^^ B (\S+) B $$
+regexp: ^^ C (\S+) C $$
+regexp: ^^ D $$
+end:
+```
+
+This code successfully searches D letter in the center of "ABCDCBA" string by applying a series
+of "zoom in" checks. We start with "birds eye" view - everything in between "A" and "A" and if we successfully find anything in between, we then zoom in and repeat the process again but now the search context is zoomed in - e.g. we effectively continue to search in "BCDCD" substring and so on till we finally find the "smallest" element in a landscape - D letter.
+
+This approach is especially effective with [soft check](https://github.com/melezhik/Sparrow6/blob/master/documentation/taskchecks.md#soft-checks) and [generators](https://github.com/melezhik/Sparrow6/blob/master/documentation/taskchecks.md#generators) where we want control
+the flow:
+
+```
+within: A (\S+) A
+~regexp: B (\S+) B
+generator: << RAKU
+!raku
+if matched() {
+   # continue to search by zooming in into smaller chunk
+   say '~regexp: C (\S+) C'
+} else {
+    say "assert: 0 none empty results found"
+}
+RAKU
+generator: << RAKU
+!raku
+if matched() {
+   # continue to search by zooming in into smaller chunk
+   say '~regexp: D'
+} else {
+    say "assert: 0 none empty results found"
+}
+RAKU
+generator: << RAKU
+!raku
+if matched() {
+   say 'note: D found!'
+} else {
+    say "assert: 0 none empty results found"
+}
+RAKU
+end:
+```
+
+## Within expressions pitfalls
+
+* Resetting search context
+        
+As with sequences and ranges, within expression need ending `end:` marker to restore search context
+
+* Use none capturing brackets (`[`,`]`) instead of capturing ones (`(`, `)`) if you
+don't want zoom within expressions:
+
+```
+within: hello \s+ [world||space||water]
+```
+
+Be careful, if you use capturing brackets (`(`, `)`) together with within: you end up
+in zoon mode, so the next check expression
+after within: will be limited to captured data
+if any:
+
+```
+within: hello \s+ (\d+)
+# the next check is going
+# to fail as we now
+# limit search to numbers
+hello
+```
+
+## Within expressions limitations 
+
+- within: end: blocks cannot be nested. You cannot have within: end: inside another within: end: block
+
+- You cannot have within: end: blocks inside
+  begin: end:, between: end: blocks
+
+- within statement does not accept plain text
+  expression as a first argument, use regular
+  expression instead when you want to verify
+  matching string with spaces:
+
+```
+within: "this line"
+```
+
+or ( alternative form ):
+
+```
+within: this \s+ line
+```
+  
+- Within: expressions are not like Python
+  within operator. If within: condition is      not met `note:` messages inside within:       block will still be printed giving false
+  impression that context successfully   switched, for instance this DSL logically     incorrect:
+
+```
+within: "this line"
+# the next debug message
+# will always be printed
+# regardless "this line"
+# exists in input or not
+note: i am within this line
+end:
+```
+
+This example should be rewritten like that;
+
+```
+within: "this line"
+:any:
+end:
+
+code: <<CODE
+!raku
+if matched() {
+   say "we found \"this line\";
+}
+CODE
+```
+  
+# Code expressions
+
+Code expressions are just pieces of generic language code gets inlined and executed during verification process.
+
+Example:
+
+Input:
+
+    Hello
+
+DSL:
+
+    Hello
+    code: <<CODE
+    !perl
+    print "hi there!\n";
+    CODE
+    Hello
+
+Output:
+
+    [task check] stdout match <Hello> True
+    [task check] hi there!
+    [task check] stdout match <Hello> True
+    
+Code expressions have no impact on verification process and could be used for debugging. 
+
+Code expressions should start with `code:` marker, followed by <<HERE doc 
+marker that defines the start of code
+block.
+
+The very first line of code block should contain language identification in form of `!language` to define programming language
+to be used to execute code block, for instance:
 
 ```
 !python
 ```
 
-The end of generator block should be closed
-by HERE doc marker. 
+More code expression examples:
 
-More generator examples:
+## raku
 
-Input text:
+    code:  <<HERE
+    !raku
+    say 'hi there!'
+    HERE
 
-    HELLO
+## bash 
 
-DSL:
-
-    generator: <<CODE
-    !perl
-    print join "\n", ('H', 'E', 'L', 'O');
-    CODE
-
-Output:
-
-    [task check]
-    <H> True
-    <E> True
-    <L> True
-    <O> True
-    
-Here are examples for other languages:
-
-Input text:
-    
-    Say
-    Hello
-    First
-    
-This generator creates 3 new check expressions:
-
-Bash:
-
-    generator: <<CODE
+    code:  <<HERE
     !bash
-      echo Say
-      echo Hello
-      echo 'regexp: Hello || Again'
-    CODE
+    echo 'hi there!'
+    HERE
 
-Ruby:
 
-    generator: <<CODE
+## ruby
+
+    code: <<CODE
     !ruby
-      puts 'Say'
-      puts 'Hello'
-      puts 'regexp: Hello || Again'
+    puts 'hi there!'
     CODE
 
-Output:
+Sparrow6 task API is available inside code expressions:
 
-    [task check] 
-    <Say> True
-    <Hello> True
-    <Hello || Again> True
-
-Here is more complicated example of using Perl language.
-
-Input:
-
-    foo value
-    bar value
-
-DSL:
-
-    # this generator creates
-    # comments
-    # and plain string 
-    # check expressions
-
-    generator: <<CODE
+    code: <<CODE
     !perl
-     my %d = ( 'foo' => 'foo value', 'bar' => 'bar value' );
-    
-     print join "\n", map { ( "# $_ ", $d{$_} ) } keys %d;
-      
-    CODE
-    
-Output:
-
-    [task check]
-    <bar value> True
-    <foo value> True
-    
-Generators could produce not only check expressions but code expressions and another generators.
-
-Generators are often used to create an asserts from captures. 
-
-This is short example for Ruby language:
-
-    number: (\d+)
-    
-    generator: <<CODE
-    !ruby
-        puts "assert: #{capture()[0] == 10}, you've got 10!"  
+    my $foo = config()->{foo};
     CODE
 
-Generator expressions could use all the functions provided by Sparrow Task SDK - https://github.com/melezhik/Sparrow6/blob/master/documentation/development.md
+Read [Sparrow6 Development Guide](https://github.com/melezhik/Sparrow6/blob/doc/documentation/development.md)
+on task API.
 
-## Generators pitfalls
+See also [generators](#generators) section on how dynamically create check expressions using various programming languages.
 
-- Always set language identification on the very first line of generator block, or else default language (Perl) will be applied which is not probably what you want 
+Code expressions could use all the functions
+provided by Sparrow Task SDK - https://github.com/melezhik/Sparrow6/blob/master/documentation/development.md
 
-- For generator expressions written on Python
-if Sparrow SDK functions are used (
-matched(), captures(), capture(), streams-array(), config(), os(), get_state(), update_state(), etc you have to import those functions from sparrow6lib to make them available inside generator expression block:
+## Code expressions pitfalls
+
+- Don't use code expressions to print another
+DSL expressions ( for instance - regexp:, generator:, code:, within:, begin:, between: , etc ) , this does not make a sense as DSL parser does not treat output from code: expressions as check rules, it just dumps the output as is. Instead use generator: to generate new check rules or DSL expressions
+
+- Always set language identification on the very first line of code block, or else default
+language (Perl) will be applied which is not probably what you want
+
+- For code expressions written on Python
+  if Sparrow SDK functions are used ( matched(), captures(), capture(), streams-array(), config(), os(), get_state(), update_state(), etc ) you have to import those functions from sparrow6lib to make them available inside code expression block:
 
 ```
-generator: <<CODE
+code: <<CODE
 !python
 from sparrow6lib import *
 c = capture()
@@ -1209,13 +1488,12 @@ DSL:
 
 Output:
 
-    [task check]
-    (a) <this is true> True
-    (a) <this is false> False
-    (a) <this is also true, Raku style> True
-    (a) <this is false, Raku style> False
-    (a) <this is true, python/ruby style> True
-    (a) <this is false, python/ruby style> False
+    [task check] <this is true> True
+    [task check] <this is false> False
+    [task check] <this is also true, Raku style> True
+    [task check] <this is false, Raku style> False
+    [task check] <this is true, python/ruby style> True
+    [task check] <this is false, python/ruby style> False
     
 Asserts are almost always created dynamically with generators. See the next section.
 
@@ -1232,3 +1510,954 @@ assert: ok
 ```
 
 - When generating assert expressions via generators follow programming languages documentation on how to convert language native types into assert expression value format
+
+# Generators
+
+* Generators is the way to _generate check expressions on the _fly_
+
+* Generator expressions like code expressions are just pieces of executable code
+
+* Everything that generator code print to _stdout_ is _treated_ as new DSL code and parsed by DSL parser
+
+* So new DSL terms are passed back to DSL parser and executed immediately
+
+Generator expressions should start with `generator:` marker, followed by <<HERE doc 
+marker that defines the start of generator
+block.
+
+The very first line of generator block should contain language identification in form of `!language` to define programming language
+to be used to execute generator block, for instance:
+
+```
+!python
+```
+
+The end of generator block should be closed
+by HERE doc marker. 
+
+More generator examples:
+
+Input text:
+
+    HELLO
+
+DSL:
+
+    generator: <<CODE
+    !perl
+    print join "\n", ('H', 'E', 'L', 'O');
+    CODE
+
+Output:
+
+    [task check] stdout match <H> True
+    [task check] stdout match <E> True
+    [task check] stdout match <L> True
+    [task check] stdout match <O> True
+    
+Here are examples for other languages:
+
+Input text:
+    
+    Say
+    Hello
+    First
+    
+This generator creates 3 new check expressions:
+
+Bash:
+
+    generator: <<CODE
+    !bash
+      echo Say
+      echo Hello
+      echo 'regexp: Hello || Again'
+    CODE
+
+Ruby:
+
+    generator: <<CODE
+    !ruby
+      puts 'Say'
+      puts 'Hello'
+      puts 'regexp: Hello || Again'
+    CODE
+
+Output:
+
+    [task check] stdout match <Say> True
+    [task check] stdout match <Hello> True
+    [task check] stdout match <Hello || Again> True
+
+Here is more complicated example of using Perl language.
+
+Input:
+
+    foo value
+    bar value
+
+DSL:
+
+    # this generator creates
+    # comments
+    # and plain string 
+    # check expressions
+
+    generator: <<CODE
+    !perl
+     my %d = ( 'foo' => 'foo value', 'bar' => 'bar value' );
+    
+     print join "\n", map { ( "# $_ ", $d{$_} ) } keys %d;
+      
+    CODE
+    
+Output:
+
+    [task check] stdout match <bar value> True
+    [task check] stdout match <foo value> True
+    
+Generators could produce not only check expressions but code expressions and another generators.
+
+Generators are often used to create an asserts from captures. 
+
+This is short example for Ruby language:
+
+    number: (\d+)
+    
+    generator: <<CODE
+    !ruby
+        puts "assert: #{capture()[0] == 10}, you've got 10!"  
+    CODE
+
+Generator expressions could use all the functions provided by Sparrow Task SDK - https://github.com/melezhik/Sparrow6/blob/master/documentation/development.md
+
+## Generators pitfalls
+
+- Always set language identification on the very first line of generator block, or else default language (Perl) will be applied which is not probably what you want 
+
+- For generator expressions written on Python
+if Sparrow SDK functions are used (
+matched(), captures(), capture(), streams-array(), config(), os(), get_state(), update_state(), etc you have to import those functions from sparrow6lib to make them available inside generator expression block:
+
+```
+generator: <<CODE
+!python
+from sparrow6lib import *
+c = capture()
+conf = config()
+CODE
+```
+# Sharing data between code or generator blocks
+
+To share captured data across code: or generator: blocks use functions [update_state(), get_state()](https://github.com/melezhik/Sparrow6/blob/master/documentation/development.md#task-states) provided by Sparrow Task SDK:
+
+```
+regexp: ID \: \s+ (\d+)
+
+code: <<CODE
+!raku
+if matched() {
+   update_state(%(
+     id => capture()[0]
+   ));
+}
+CODE
+
+regexp: Name \: \s+ (\S+)
+
+code: <<CODE
+!raku
+if matched() {
+   my $id = get_state()<id>;
+   my $name = capture()[0];
+   say "{$name}'s ID is {$id}";
+}
+CODE
+
+```
+
+# Negations
+
+Negations are reverse matches, they work the same way as regular expressions 
+but with reverse logic - if text matches - check fails.
+
+Here are some examples:
+
+Input:
+
+```
+OK
+Hello
+done
+A B C D
+```
+
+DSL:
+
+```
+note: negations in blocks
+
+begin:
+regexp: OK
+!regexp: ok
+Hello
+done
+end:
+
+note: negations for single strings
+!regexp: Ok
+
+note: negations inside ranges
+note: between: {OK} {done}
+between: {OK} {done}
+  !regexp: HELLO
+  Hello
+end:
+
+within: "A B"
+!regexp: F
+C
+end:
+```
+
+output:
+
+```
+[task check]
+# negations in blocks
+stdout match (s) <OK> True
+stdout match (s) <!ok> True
+stdout match (s) <Hello> True
+stdout match (s) <done> True
+# negations for single strings
+stdout match <!Ok> True
+# negations inside ranges
+# between: {OK} {done}
+stdout match (r) <!HELLO> True
+stdout match (r) <Hello> True
+stdout match (w) <!F> True
+stdout match (w) <C> True
+```
+
+# Search by line numbers AKA SLN search
+
+Sometime it makes a sense to search by line number of text output. 
+
+Task check provides SLN ( Search by Line ) expressions for that. SLN expression is in form:
+
+colon line number colon
+
+
+Where line number is a number of line of input text.
+
+There should not be any spaces between line 
+number and colons. 
+
+Examples:
+
+```
+# the very first line
+# line number 0
+# internally input starts with 0
+# index
+
+:0:
+
+
+# line number 99
+
+:99:
+```
+
+Full example:
+
+Input:
+
+```
+OK
+HELLO
+OK
+DONE
+BYE!
+```
+
+DSL:
+
+```
+OK
+
+code: <<RAKU
+!raku
+use Data::Dump;
+for captures-full() -> $s {
+  say $s;
+}
+RAKU
+
+
+begin:
+HELLO
+!regexp: OK2
+:2:
+!regexp: OK3
+:3:
+BYE!
+end:
+```
+
+Output:
+
+```
+[task stdout]
+13:02:02 :: OK
+13:02:02 :: HELLO
+13:02:02 :: OK
+13:02:02 :: DONE
+13:02:02 :: BYE!
+[task check]
+stdout match <OK> True
+# [{data => [OK], index => 0, stream-id => (Any)} {data => [OK], index => 2, stream-id => (Any)}]
+stdout match (s) <HELLO> True
+stdout match (s) <!OK2> True
+stdout match (s) <:2:> True
+stdout match (s) <!OK3> True
+stdout match (s) <:3:> True
+stdout match (s) <BYE!> True
+```
+
+The search starts with "OK" lines check that find two lines. The first is at the index 0, 
+and the second at the index 2.
+
+Next sequential search begins with "HELLO" line (the one and only here), then references to 
+the second "OK" line (at the index number 2), and then to the line with index number 3 (which happens to be a "DONE" line), that all results in effective search of `HELLO->OK->DONE->BYE!` sequential block.
+
+Additional negation checks make it sure that there is no "OK2" line after the first "HELLO" line, and there is no "OK3" line after the second "OK" line.
+
+---
+
+You can use SLN in ranges, sequential blocks and  within expressions:
+
+```
+note: search everything between 1st and 3d lines
+between: { :1: } { :3: }
+    regexp: .*
+end:
+```
+
+```
+note: start sequence from 2nd line
+begin:
+    :2:
+    hello2
+end:
+
+note: search within line number 33
+within: :33:
+end:
+```
+
+## SLN expressions pitfalls
+
+- When using SLN expressions, there should not be any other symbols before or after expression ( with the exception of using SLN together with between: and within: , see the next paragraph ).
+
+Following example of correct SLN expressions
+used with other expressions:
+
+```
+# verify that input text
+# has the very first
+# hello line
+# then any line
+# the world line
+# then any line 
+hello
+:1:
+world
+:3:
+```
+
+This is example of incorrect SLN expressions
+syntax when SLN expressions are used with other expressions:
+
+```
+# this is wrong
+# you cannot use SLN and other
+# expressions on the same line
+helld
+:1: world :3:
+```
+
+- You can use SLN expressions together with
+between expressions like that ( previous rule of no other expressions on the same line where SLN is written does not apply ) 
+
+```
+# verify that input text
+# between the first
+# and tenth line
+# has digits
+between: { :0: } { :9 }
+regexp: \d
+end:
+```
+
+```
+# verify that input text
+# between the first
+# and line with word DONE
+# has digits
+between: { :0: } { DONE }
+regexp: \d
+end:
+```
+
+- You can use SLN expressions together with within; expressions like that ( previous rule of no other expressions on the same line where SLN is written does not apply ) 
+
+```
+# verify that input text
+# tenth line
+# has digits
+within: :9:
+regexp: \d
+end:
+```
+
+- In task check parser line numbers starts with index 0, so the first line will be :0:,
+the second will be :1:, etc
+
+# Streams
+
+Streams are captures grouped by logical blocks within search context.
+
+While captures and  matched lines get flushed with every check step, steams allow to _accumulate_ captures and group them.
+
+Consider an example with captures first:
+
+Input text:
+
+    foo
+        a
+        b
+        c
+    bar
+
+    foo
+        1
+        2
+        3
+    bar
+
+    foo
+        0
+        00
+        000
+    bar
+
+DSL code:
+
+    begin:
+
+      regexp: (f) (oo)
+  
+      code: <<CODE
+      !perl
+      print "layer: 1 ", ( join "", map { map {"{$_}"} @{$_}} @{captures()} ), "\n";
+      CODE
+      
+      regexp: (\S+)
+  
+      code: print "layer: 2 ", ( join "", map { map {"{$_}"} @{$_}} @{captures()} ), "\n";
+  
+      regexp: (\S+)
+  
+      code: <<CODE
+      !perl
+      print "layer: 3 ", ( join "", map { map {"{$_}"} @{$_}} @{captures()} ), "\n";
+      CODE
+      
+      regexp: (\S+)
+  
+      code: <<CODE
+      !perl
+      print "layer: 4 ", ( join "", map { map {"{$_}"} @{$_}} @{captures()} ), "\n";
+      CODE
+      
+      regexp: (bar)
+  
+      code: <<CODE
+      !perl
+      print "layer: 5 ", ( join "", map { map {"{$_}"} @{$_}} @{captures()} ), "\n";
+      CODE
+      
+    end:
+    
+Output:
+
+    [task check] stdout match (s) <(f) (oo)> True
+    [task check] layer: 1 {f}{oo}{f}{oo}{f}{oo}
+    [task check] stdout match (s) <(\S+)> True
+    [task check] layer: 2 {a}{1}{0}
+    [task check] stdout match (s) <(\S+)> True
+    [task check] layer: 3 {b}{2}{00}
+    [task check] stdout match (s) <(\S+)> True
+    [task check] layer: 4 {c}{3}{000}
+    [task check] stdout match (s) <(bar)> True
+    [task check] layer: 5 {bar}{bar}{bar}
+        
+
+As we've seen though this example:
+
+* With captures it's impossible to preserve previously matched data and group it by streams ( abc, 123, 0 00 000 ).
+
+* Captures scope is always limited to check step
+
+* Captures are grouped by check steps
+
+* Captures are logical groups ignorant
+
+Streams act differently, they respect search context and logical groups:
+
+* Streams are grouped by search context logical blocks
+
+* Streams allow to accumulate matched data within search context
+
+Consider the same example with streams:
+
+DSL:
+
+    begin:
+
+      regexp: (f) (oo)
+      regexp: \S+
+      regexp: \S+
+      regexp: \S+
+      regexp: (bar)
+
+      code:  <<CODE
+      !perl
+        for my $s (@{streams_array()}) {
+            my $i=1;
+            for my $l (@{$s}){
+              print "layer: ", $i++, " ", (join "", map {"{$_}"} @{$l}), "\n";
+            }
+          print "\n";
+        }
+  
+      CODE
+  
+    end:
+
+
+Output:
+
+    [task check] layer: 1 {f}{oo}
+    [task check] layer: 2 {a}
+    [task check] layer: 3 {b}
+    [task check] layer: 4 {c}
+    [task check] layer: 5 {bar}
+    [task check] 
+    [task check] layer: 1 {f}{oo}
+    [task check] layer: 2 {1}
+    [task check] layer: 3 {2}
+    [task check] layer: 4 {3}
+    [task check] layer: 5 {bar}
+    [task check] layer: 1 {f}{oo}
+    [task check] 
+    [task check] layer: 1 {f}{oo}
+    [task check] layer: 2 {0}
+    [task check] layer: 3 {00}
+    [task check] layer: 4 {000}
+    [task check] layer: 5 {bar}
+        
+In this example `stream_array()` function returns an array of _streams_. 
+
+Every stream is an array of _layers_, where layer is captured data for a single check step within search context logical block
+
+Streams preserve logical block context. Number of streams relates to the number of successfully matched blocks.
+
+Streams data presentation is much closer to what we see in original text, because it remain original text structure,
+not breaking it to independent layers.
+
+Stream could be specially useful when combined with range expressions of _different_ range lengths:
+
+Input text:
+
+    foo
+        2
+        4
+        6
+        8
+    bar
+
+    foo
+        1
+        3
+    bar
+
+    foo
+        0
+        0
+        0
+    bar
+
+
+DSL code:
+
+    between: {foo} {bar}
+    
+      regexp: (\d+)
+    
+      code:  <<CODE
+      !perl
+        for my $s (@{streams_array()}) {
+            my $i=1;
+            for my $l (@{$s}){
+              print "layer: ", $i++, " ", (join "", map {"{$_}"} @{$l}), "\n";
+            }
+          print "\n";
+        }
+    
+      CODE
+    
+    end:
+    
+Output:
+
+    [task check] stdout match (r) <(\d+)> True
+    [task check] layer: 1 {2}
+    [task check] layer: 2 {4}
+    [task check] layer: 3 {6}
+    [task check] layer: 4 {8}
+    [task check] 
+    [task check] layer: 1 {1}
+    [task check] layer: 2 {3}
+    [task check] 
+    [task check] layer: 1 {0}
+    [task check] layer: 2 {0}
+    [task check] layer: 3 {0}
+
+## Streams functions
+
+Following streams functions are implemented for TC compatible languages:
+
+* streams_array
+
+Returns array of streams
+
+* streams()
+
+Hash representation of streams data. Hash keys - unique stream identifiers.
+
+* dump_streams()
+
+Dump streams in human readable format, useful for debugging.
+
+# Experimental features
+
+## Replace
+
+Replace allows to update file in runtime during check is performed
+
+Following example search HELLO and digits within OK .. DONE range and then 
+increment found digit and update original file: 
+
+Input file:
+
+```
+cat << HERE > file.txt
+OK
+HELLO 1
+DONE
+HERE
+```
+
+DSL:
+
+```
+between: {OK} {DONE}
+    ~regexp: HELLO \s+ (\d+)
+end:
+
+code: <<RAKU
+!raku
+if matched() {
+    my $ln = captures-full()[0]<index>;
+    my $num = capture()[0].Int;
+    $num++;
+    replace("file.txt",$ln,"BYE $num");
+}
+RAKU
+```
+
+Modified file:
+
+```
+OK
+BYE 2
+DONE
+```
+
+Pay attention that [soft check](https://github.com/melezhik/Sparrow6/blob/master/documentation/taskchecks.md#soft-checks) is used here to let main flow continues even though if
+range search fails 
+
+## Remove line
+
+`remove-line` works similarly to `replace`, but just removing line at number `n`, following example
+removes all lines between `AAA` and `BBB`, including `AAA` and `BBB` lines:
+
+DSL:
+
+```
+between: {AAA} {BBB}
+:any:
+end:
+
+code: <<RAKU
+!raku
+for captures-full()<> -> $c {
+    remove-line("file.txt",$c<index>)
+}
+RAKU
+```
+
+## Sources
+
+By default STDOUT is a source where input data is read from. One can charge this by using `source:` directive.
+
+Consider two files - `file1.txt` and `file2.txt` with various content. Instead of checking content of _both_ files ( using  for example `cat file1.txt; cat file2.txt`), we can check files independently:
+
+DSL:
+
+```
+source: file1.txt
+# all checks are going to be against file1.txt
+# data
+A1
+B1
+C1
+
+source: file2.txt
+# all checks are going to be against file2.txt
+# data
+A2
+B2
+C2
+```
+
+This makes a sense when `file1.txt` has a following lines:
+
+```
+A1
+B1
+C1
+```
+
+And file `file2.txt` respectively:
+
+```
+A2
+B2
+C2
+```
+
+This is just a very _simple_ example showing the concept, one can do more sophisticated scenarios, for example
+combining sources with code blocks:
+
+```
+# collect all lines with numbers
+# capturing numeric data
+
+~regexp: (\d+)
+
+# save numbers to the file
+# numbers.out for
+# further processing
+
+code: <<OK
+!raku
+
+my @data;
+
+for captures()<> -> $c {
+    push @data, $c[0];
+}
+
+"numbers.out".IO.spurt(@data.join("\n"));
+
+OK
+
+source: numbers.out
+
+# capture all lines
+:any:
+
+# sum all numbers
+code: <<OK
+!raku
+
+my $sum = 0;
+
+for matched() -> $c {
+    $a += Int($c)
+}
+
+say "sum: $sum";
+
+OK
+```
+
+This scenario effectively implements Linux style pipeline, where the first step extracts all the numbers and the second sums them up.
+
+
+Sources could be effectively combined with `replace` and `remove-line` functions effectively causing reload of data from changed files, consider this example with a failure in the end, proving that the second line has already been deleted:
+
+DSL:
+
+```
+note: === change source ===
+
+source: /tmp/file1.txt
+regexp: ^^ A1 $$
+B1
+C1
+
+note: === change source ===
+
+source: /tmp/file2.txt
+regexp: ^^ A2 $$
+B2
+C2
+
+
+note: === remove second line from /tmp/file1.txt  ===
+
+code: <<OK
+!raku
+remove-line("/tmp/file1.txt",1)
+OK
+
+note: === change source ===
+
+source: /tmp/file1.txt
+
+B1
+```
+
+Output:
+
+```
+[task stdout]
+|> source changed to [/tmp/file1.txt]
+21:46:52 :: A1
+21:46:52 :: B1
+21:46:52 :: C1
+|> source changed to [/tmp/file2.txt]
+21:46:52 :: A2
+21:46:52 :: B2
+21:46:52 :: C2
+|> source changed to [/tmp/file1.txt]
+21:46:54 :: A1
+21:46:54 :: C1
+[task check]
+# === change source ===
+stdout match <^^ A1 $$> True
+stdout match <B1> True
+stdout match <C1> True
+# === change source ===
+stdout match <^^ A2 $$> True
+stdout match <B2> True
+stdout match <C2> True
+# === remove second line from /tmp/file1.txt  ===
+# === change source ===
+stdout match <B1> False
+```
+
+# FAQ
+
+## Q1
+
+> Is it common for one line to fail and subsequent lines then fail even though they match?
+
+This only happens if sequential search is used, for example:
+
+task.check
+```
+begin:
+AAA
+B
+C
+end:
+```
+Report:
+```
+[task stdout]
+23:17:57 :: A
+23:17:57 :: B
+23:17:57 :: C
+[task check]
+stdout match (s) <AAA> False
+stdout match (s) <B> False
+stdout match (s) <C> False
+=================
+TASK CHECK FAIL
+```
+
+This happens because for `block:` `end:` mode, search effectively stops when the first none matching happens, because all the *further* matches do not matter as we require subsequent match - like AAA, B, C in strict order.
+
+
+# Examples
+
+Following are some selected use cases,
+for more go to examples/ directory
+
+## Apache version
+
+DSL:
+
+```
+regexp: ^^ \s* "Server:" \s+ "Apache/" \d+ "."
+```
+
+Output:
+
+```
+[task stdout]
+22:14:15 :: Server: Apache/2.4.62
+[task check]
+stdout match <^^ \s* "Server:" \s+ "Apache/" \d+ "."> True
+```
+- Look at [examples](https://github.com/melezhik/Sparrow6/tree/master/examples) folder
+
+# Environment variables
+
+* SP6_DEBUG
+
+Print out debug information.
+
+* SP6_KEEP_CACHE
+
+Don't remove cache files when checks are done. Useful when debugging.
+
+# Author
+
+[Aleksei Melezhik](mailto:melezhik@gmail.com)
+
+# Home page
+
+https://github.com/melezhik/Sparrow6
+
+# COPYRIGHT
+
+Copyright 2019 Alexey Melezhik.
+
+This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+
+# See also
+
+[Sparrow6 Development Guide](https://github.com/melezhik/Sparrow6/blob/master/documentation/development.md)
+
+# Thanks
+
+* To God as the One Who inspires me to do my job!
+
+
+
